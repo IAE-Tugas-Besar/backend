@@ -89,12 +89,88 @@ const options: swaggerJsdoc.Options = {
             password: { type: "string", example: "password123" },
           },
         },
+        Concert: {
+          type: "object",
+          properties: {
+            id: { type: "string", example: "cm4pxyz123" },
+            title: { type: "string", example: "Rock Festival 2025" },
+            venue: { type: "string", example: "Jakarta International Stadium" },
+            startAt: { type: "string", format: "date-time" },
+            endAt: { type: "string", format: "date-time" },
+            description: { type: "string", example: "The biggest rock festival" },
+            status: {
+              type: "string",
+              enum: ["DRAFT", "PUBLISHED", "ENDED"],
+              example: "PUBLISHED",
+            },
+            ticketTypes: {
+              type: "array",
+              items: { $ref: "#/components/schemas/TicketType" },
+            },
+          },
+        },
+        TicketType: {
+          type: "object",
+          properties: {
+            id: { type: "string", example: "cm4pxyz456" },
+            concertId: { type: "string", example: "cm4pxyz123" },
+            name: { type: "string", example: "VIP" },
+            price: { type: "number", example: 2500000 },
+            quotaTotal: { type: "integer", example: 100 },
+            quotaSold: { type: "integer", example: 25 },
+            salesStartAt: { type: "string", format: "date-time" },
+            salesEndAt: { type: "string", format: "date-time" },
+          },
+        },
+        CreateConcertInput: {
+          type: "object",
+          required: ["title", "venue", "startAt", "endAt"],
+          properties: {
+            title: { type: "string", example: "Rock Festival 2025" },
+            venue: { type: "string", example: "Jakarta International Stadium" },
+            startAt: { type: "string", format: "date-time" },
+            endAt: { type: "string", format: "date-time" },
+            description: { type: "string", example: "The biggest rock festival" },
+            status: {
+              type: "string",
+              enum: ["DRAFT", "PUBLISHED", "ENDED"],
+              example: "DRAFT",
+            },
+          },
+        },
+        UpdateConcertInput: {
+          type: "object",
+          properties: {
+            title: { type: "string", example: "Rock Festival 2025" },
+            venue: { type: "string", example: "Jakarta International Stadium" },
+            startAt: { type: "string", format: "date-time" },
+            endAt: { type: "string", format: "date-time" },
+            description: { type: "string", example: "The biggest rock festival" },
+            status: {
+              type: "string",
+              enum: ["DRAFT", "PUBLISHED", "ENDED"],
+            },
+          },
+        },
+        Pagination: {
+          type: "object",
+          properties: {
+            page: { type: "integer", example: 1 },
+            limit: { type: "integer", example: 10 },
+            total: { type: "integer", example: 50 },
+            totalPages: { type: "integer", example: 5 },
+          },
+        },
       },
     },
     tags: [
       {
         name: "Auth",
         description: "Authentication endpoints",
+      },
+      {
+        name: "Concert",
+        description: "Concert management endpoints",
       },
     ],
   },

@@ -6,6 +6,7 @@ import swaggerUi from "swagger-ui-express";
 import { typeDefs } from "./schema";
 import { resolvers } from "./schema/resolvers";
 import authRoutes from "./routes/auth";
+import concertRoutes from "./routes/concerts";
 import { swaggerSpec } from "./config/swagger";
 
 const PORT = process.env.PORT || 4000;
@@ -31,6 +32,9 @@ async function startServer() {
 
   // Auth routes
   app.use("/auth", authRoutes);
+
+  // Concert routes
+  app.use("/concerts", concertRoutes);
 
   // GraphQL endpoint
   app.use("/graphql", expressMiddleware(server) as unknown as RequestHandler);
