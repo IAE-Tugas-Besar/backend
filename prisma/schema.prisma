@@ -1,0 +1,165 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// Enums
+enum Role {
+  USER
+  ADMIN
+}
+
+enum ConcertStatus {
+  DRAFT
+  PUBLISHED
+  ENDED
+}
+
+enum OrderStatus {
+  PENDING
+  AWAITING_PAYMENT
+  PAID
+  CANCELLED
+  EXPIRED
+  REFUNDED
+}
+
+enum TicketStatus {
+  ISSUED
+  VOID
+  USED
+}
+
+enum PaymentProvider {
+  MIDTRANS
+}
+
+enum PaymentStatus {
+  INITIATED
+  PENDING
+  SETTLED
+  FAILED
+  EXPIRED
+  CANCELLED
+  REFUNDED
+}
+
+// Models
+model User {
+  id           String   @id @default(cuid())
+  name         String
+  email        String   @unique
+  passwordHash String
+  role         Role     @default(USER)
+  createdAt    DateTime @default(now())
+
+  orders  Order[]
+  tickets Ticket[]
+
+  @@map("users")
+}
+
+model Concert {
+  id          String        @id @default(cuid())
+  title       String
+  venue       String
+  startAt     DateTime
+  endAt       DateTime
+  description String?
+  status      ConcertStatus @default(DRAFT)
+
+  ticketTypes TicketType[]
+  orders      Order[]
+  tickets     Ticket[]
+
+  @@map("concerts")
+}
+
+model TicketType {
+  id           String   @id @default(cuid())
+  concertId    String
+  name         String
+  price        Decimal  @db.Decimal(12, 2)
+  quotaTotal   Int
+  quotaSold    Int      @default(0)
+  salesStartAt DateTime
+  salesEndAt   DateTime
+
+  concert    Concert     @relation(fields: [concertId], references: [id], onDelete: Cascade)
+  orderItems OrderItem[]
+  tickets    Ticket[]
+
+  @@map("ticket_types")
+}
+
+model Order {
+  id              String      @id @default(cuid())
+  userId          String
+  concertId       String
+  midtransOrderId String      @unique
+  status          OrderStatus @default(PENDING)
+  grossAmount     Decimal     @db.Decimal(12, 2)
+  createdAt       DateTime    @default(now())
+  expiresAt       DateTime
+
+  user       User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  concert    Concert     @relation(fields: [concertId], references: [id], onDelete: Cascade)
+  orderItems OrderItem[]
+  tickets    Ticket[]
+  payment    Payment?
+
+  @@map("orders")
+}
+
+model OrderItem {
+  id           String  @id @default(cuid())
+  orderId      String
+  ticketTypeId String
+  qty          Int
+  unitPrice    Decimal @db.Decimal(12, 2)
+  subtotal     Decimal @db.Decimal(12, 2)
+
+  order      Order      @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  ticketType TicketType @relation(fields: [ticketTypeId], references: [id], onDelete: Cascade)
+
+  @@map("order_items")
+}
+
+model Ticket {
+  id           String       @id @default(cuid())
+  orderId      String
+  userId       String
+  concertId    String
+  ticketTypeId String
+  code         String       @unique
+  status       TicketStatus @default(ISSUED)
+  issuedAt     DateTime     @default(now())
+  usedAt       DateTime?
+
+  order      Order      @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  user       User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  concert    Concert    @relation(fields: [concertId], references: [id], onDelete: Cascade)
+  ticketType TicketType @relation(fields: [ticketTypeId], references: [id], onDelete: Cascade)
+
+  @@map("tickets")
+}
+
+model Payment {
+  id                String          @id @default(cuid())
+  orderId           String          @unique
+  provider          PaymentProvider @default(MIDTRANS)
+  status            PaymentStatus   @default(INITIATED)
+  snapToken         String?
+  transactionStatus String?
+  fraudStatus       String?
+  rawPayloadJson    Json?
+  updatedAt         DateTime        @updatedAt
+
+  order Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  @@map("payments")
+}
