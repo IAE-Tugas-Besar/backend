@@ -1,4 +1,4 @@
-import midtransClient from "midtrans-client";
+import * as midtransClient from "midtrans-client";
 
 // Midtrans Sandbox credentials
 const MIDTRANS_SERVER_KEY =
