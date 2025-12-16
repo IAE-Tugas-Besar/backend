@@ -30,20 +30,26 @@ export const resolvers = {
       prisma.ticketType.findUnique({ where: { id } }),
 
     // Order queries
-    orders: () => prisma.order.findMany(),
+    orders: () => prisma.order.findMany({ orderBy: { createdAt: "desc" } }),
     order: (_: unknown, { id }: { id: string }) =>
       prisma.order.findUnique({ where: { id } }),
     userOrders: (_: unknown, { userId }: { userId: string }) =>
-      prisma.order.findMany({ where: { userId } }),
+      prisma.order.findMany({
+        where: { userId },
+        orderBy: { createdAt: "desc" }
+      }),
 
     // Ticket queries
-    tickets: () => prisma.ticket.findMany(),
+    tickets: () => prisma.ticket.findMany({ orderBy: { issuedAt: "desc" } }),
     ticket: (_: unknown, { id }: { id: string }) =>
       prisma.ticket.findUnique({ where: { id } }),
     ticketByCode: (_: unknown, { code }: { code: string }) =>
       prisma.ticket.findUnique({ where: { code } }),
     userTickets: (_: unknown, { userId }: { userId: string }) =>
-      prisma.ticket.findMany({ where: { userId } }),
+      prisma.ticket.findMany({
+        where: { userId },
+        orderBy: { issuedAt: "desc" }
+      }),
 
     // Payment queries
     payment: (_: unknown, { orderId }: { orderId: string }) =>
@@ -235,12 +241,12 @@ export const resolvers = {
         id: string;
         input: {
           status:
-            | "PENDING"
-            | "AWAITING_PAYMENT"
-            | "PAID"
-            | "CANCELLED"
-            | "EXPIRED"
-            | "REFUNDED";
+          | "PENDING"
+          | "AWAITING_PAYMENT"
+          | "PAID"
+          | "CANCELLED"
+          | "EXPIRED"
+          | "REFUNDED";
         };
       }
     ) => {
