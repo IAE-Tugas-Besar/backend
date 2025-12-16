@@ -96,9 +96,15 @@ const options: swaggerJsdoc.Options = {
         name: "Auth",
         description: "Authentication endpoints",
       },
+      {
+        name: "Orders",
+        description: "Order & ticket booking endpoints",
+      },
     ],
   },
   apis: ["./src/routes/*.ts"],
 };
 
 export const swaggerSpec = swaggerJsdoc(options);
+
+
