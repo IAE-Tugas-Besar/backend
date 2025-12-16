@@ -7,6 +7,7 @@ import { typeDefs } from "./schema";
 import { resolvers } from "./schema/resolvers";
 import authRoutes from "./routes/auth";
 import { swaggerSpec } from "./config/swagger";
+import ticketRoutes from "./routes/ticket";
 
 const PORT = process.env.PORT || 4000;
 
@@ -31,6 +32,9 @@ async function startServer() {
 
   // Auth routes
   app.use("/auth", authRoutes);
+
+  // Ticket routes
+  app.use("/tickets", ticketRoutes);
 
   // GraphQL endpoint
   app.use("/graphql", expressMiddleware(server) as unknown as RequestHandler);
