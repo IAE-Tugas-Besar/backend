@@ -6,8 +6,13 @@ import swaggerUi from "swagger-ui-express";
 import { typeDefs } from "./schema";
 import { resolvers } from "./schema/resolvers";
 import authRoutes from "./routes/auth";
+<<<<<<< HEAD
 import orderRoutes from "./routes/order";
+=======
+import concertRoutes from "./routes/concerts";
+>>>>>>> c89531f00279248f1b8a03d0885d8558cbdf5400
 import { swaggerSpec } from "./config/swagger";
+import ticketRoutes from "./routes/ticket";
 
 
 const PORT = process.env.PORT || 4000;
@@ -34,8 +39,16 @@ async function startServer() {
   // Auth routes
   app.use("/auth", authRoutes);
 
+<<<<<<< HEAD
   // Order routes
   app.use(orderRoutes);
+=======
+  // Concert routes
+  app.use("/concerts", concertRoutes);
+
+  // Ticket routes
+  app.use("/tickets", ticketRoutes);
+>>>>>>> c89531f00279248f1b8a03d0885d8558cbdf5400
 
   // GraphQL endpoint
   app.use("/graphql", expressMiddleware(server) as unknown as RequestHandler);
