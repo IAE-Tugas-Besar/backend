@@ -169,13 +169,12 @@ const options: swaggerJsdoc.Options = {
         description: "Authentication endpoints",
       },
       {
-<<<<<<< HEAD
         name: "Orders",
         description: "Order & ticket booking endpoints",
-=======
+      },
+      {
         name: "Concert",
         description: "Concert management endpoints",
->>>>>>> c89531f00279248f1b8a03d0885d8558cbdf5400
       },
     ],
   },
