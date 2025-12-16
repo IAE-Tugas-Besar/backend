@@ -20,6 +20,9 @@ async function startServer() {
   // Apply global middleware
   app.use(cors());
   app.use(express.json());
+  
+  // Serve static files from uploads directory
+  app.use("/uploads", express.static("uploads"));
 
   // Create Apollo Server
   const server = new ApolloServer({

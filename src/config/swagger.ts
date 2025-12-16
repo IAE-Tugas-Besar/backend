@@ -98,6 +98,10 @@ const options: swaggerJsdoc.Options = {
             startAt: { type: "string", format: "date-time" },
             endAt: { type: "string", format: "date-time" },
             description: { type: "string", example: "The biggest rock festival" },
+            imageUrl: {
+              type: "string",
+              example: "/uploads/concerts/concert-image-1234567890.jpg",
+            },
             status: {
               type: "string",
               enum: ["DRAFT", "PUBLISHED", "ENDED"],
@@ -131,6 +135,11 @@ const options: swaggerJsdoc.Options = {
             startAt: { type: "string", format: "date-time" },
             endAt: { type: "string", format: "date-time" },
             description: { type: "string", example: "The biggest rock festival" },
+            image: {
+              type: "string",
+              format: "binary",
+              description: "Concert image file (JPEG, PNG, GIF, WebP - max 5MB)",
+            },
             status: {
               type: "string",
               enum: ["DRAFT", "PUBLISHED", "ENDED"],
@@ -146,6 +155,11 @@ const options: swaggerJsdoc.Options = {
             startAt: { type: "string", format: "date-time" },
             endAt: { type: "string", format: "date-time" },
             description: { type: "string", example: "The biggest rock festival" },
+            image: {
+              type: "string",
+              format: "binary",
+              description: "Concert image file (JPEG, PNG, GIF, WebP - max 5MB)",
+            },
             status: {
               type: "string",
               enum: ["DRAFT", "PUBLISHED", "ENDED"],

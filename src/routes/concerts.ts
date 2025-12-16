@@ -1,6 +1,8 @@
 import { Router, Request, Response } from "express";
 import { prisma } from "../lib/prisma";
 import { authenticate, requireAdmin } from "../middleware/auth";
+import { uploadSingle } from "../middleware/upload";
+import path from "path";
 
 const router: Router = Router();
 
@@ -120,9 +122,33 @@ router.get("/", async (req: Request, res: Response) => {
  *     requestBody:
  *       required: true
  *       content:
- *         application/json:
+ *         multipart/form-data:
  *           schema:
- *             $ref: '#/components/schemas/CreateConcertInput'
+ *             type: object
+ *             required: [title, venue, startAt, endAt]
+ *             properties:
+ *               title:
+ *                 type: string
+ *                 example: Rock Festival 2025
+ *               venue:
+ *                 type: string
+ *                 example: Jakarta International Stadium
+ *               startAt:
+ *                 type: string
+ *                 format: date-time
+ *               endAt:
+ *                 type: string
+ *                 format: date-time
+ *               description:
+ *                 type: string
+ *                 example: The biggest rock festival
+ *               image:
+ *                 type: string
+ *                 format: binary
+ *                 description: Concert image (JPEG, PNG, GIF, WebP - max 5MB)
+ *               status:
+ *                 type: string
+ *                 enum: [DRAFT, PUBLISHED, ENDED]
  *     responses:
  *       201:
  *         description: Konser berhasil dibuat
@@ -142,9 +168,10 @@ router.get("/", async (req: Request, res: Response) => {
  *       403:
  *         description: Admin access required
  */
-router.post("/", authenticate, requireAdmin, async (req: Request, res: Response) => {
+router.post("/", authenticate, requireAdmin, uploadSingle, async (req: Request, res: Response) => {
   try {
     const { title, venue, startAt, endAt, description, status } = req.body;
+    const file = req.file;
 
     // Validate required fields
     if (!title || !venue || !startAt || !endAt) {
@@ -175,6 +202,13 @@ router.post("/", authenticate, requireAdmin, async (req: Request, res: Response)
       return;
     }
 
+    // Generate image URL if file is uploaded
+    let imageUrl: string | undefined;
+    if (file) {
+      // Construct URL: /uploads/concerts/filename
+      imageUrl = `/uploads/concerts/${file.filename}`;
+    }
+
     const concert = await prisma.concert.create({
       data: {
         title,
@@ -182,6 +216,7 @@ router.post("/", authenticate, requireAdmin, async (req: Request, res: Response)
         startAt: startDate,
         endAt: endDate,
         description,
+        imageUrl,
         status: status || "DRAFT",
       },
       include: {
@@ -278,11 +313,31 @@ router.get("/:id", async (req: Request, res: Response) => {
  *           type: string
  *         description: Concert ID
  *     requestBody:
- *       required: true
+ *       required: false
  *       content:
- *         application/json:
+ *         multipart/form-data:
  *           schema:
- *             $ref: '#/components/schemas/UpdateConcertInput'
+ *             type: object
+ *             properties:
+ *               title:
+ *                 type: string
+ *               venue:
+ *                 type: string
+ *               startAt:
+ *                 type: string
+ *                 format: date-time
+ *               endAt:
+ *                 type: string
+ *                 format: date-time
+ *               description:
+ *                 type: string
+ *               image:
+ *                 type: string
+ *                 format: binary
+ *                 description: Concert image (JPEG, PNG, GIF, WebP - max 5MB)
+ *               status:
+ *                 type: string
+ *                 enum: [DRAFT, PUBLISHED, ENDED]
  *     responses:
  *       200:
  *         description: Konser berhasil diperbarui
@@ -304,10 +359,11 @@ router.get("/:id", async (req: Request, res: Response) => {
  *       404:
  *         description: Konser tidak ditemukan
  */
-router.put("/:id", authenticate, requireAdmin, async (req: Request, res: Response) => {
+router.put("/:id", authenticate, requireAdmin, uploadSingle, async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
     const { title, venue, startAt, endAt, description, status } = req.body;
+    const file = req.file;
 
     // Check if concert exists
     const existingConcert = await prisma.concert.findUnique({
@@ -329,6 +385,27 @@ router.put("/:id", authenticate, requireAdmin, async (req: Request, res: Respons
     if (venue !== undefined) updateData.venue = venue;
     if (description !== undefined) updateData.description = description;
     if (status !== undefined) updateData.status = status;
+
+    // Handle image upload
+    if (file) {
+      // Delete old image if exists
+      if (existingConcert.imageUrl) {
+        const fs = require("fs");
+        const oldImagePath = path.join(
+          process.cwd(),
+          existingConcert.imageUrl.replace(/^\//, "")
+        );
+        try {
+          if (fs.existsSync(oldImagePath)) {
+            fs.unlinkSync(oldImagePath);
+          }
+        } catch (err) {
+          console.error("Error deleting old image:", err);
+        }
+      }
+      // Set new image URL
+      updateData.imageUrl = `/uploads/concerts/${file.filename}`;
+    }
 
     if (startAt !== undefined) {
       const startDate = new Date(startAt);
