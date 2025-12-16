@@ -23,12 +23,14 @@
   "dependencies": {
     "@apollo/server": "^4.11.0",
     "@prisma/client": "^5.22.0",
+    "@types/multer": "^2.0.0",
     "bcrypt": "^6.0.0",
     "cors": "^2.8.5",
     "express": "^4.21.1",
     "graphql": "^16.9.0",
     "jsonwebtoken": "^9.0.3",
     "midtrans-client": "^1.4.3",
+    "multer": "^2.0.2",
     "swagger-jsdoc": "^6.2.8",
     "swagger-ui-express": "^5.0.1",
     "uuid": "^11.0.3"

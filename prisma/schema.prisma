@@ -70,6 +70,7 @@ model Concert {
   startAt     DateTime
   endAt       DateTime
   description String?
+  imageUrl    String?
   status      ConcertStatus @default(DRAFT)
 
   ticketTypes TicketType[]
