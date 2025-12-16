@@ -6,6 +6,7 @@ import swaggerUi from "swagger-ui-express";
 import { typeDefs } from "./schema";
 import { resolvers } from "./schema/resolvers";
 import authRoutes from "./routes/auth";
+import concertRoutes from "./routes/concerts";
 import { swaggerSpec } from "./config/swagger";
 import ticketRoutes from "./routes/ticket";
 
@@ -32,6 +33,9 @@ async function startServer() {
 
   // Auth routes
   app.use("/auth", authRoutes);
+
+  // Concert routes
+  app.use("/concerts", concertRoutes);
 
   // Ticket routes
   app.use("/tickets", ticketRoutes);
