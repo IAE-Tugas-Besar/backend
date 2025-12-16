@@ -169,6 +169,10 @@ const options: swaggerJsdoc.Options = {
         description: "Authentication endpoints",
       },
       {
+        name: "Orders",
+        description: "Order & ticket booking endpoints",
+      },
+      {
         name: "Concert",
         description: "Concert management endpoints",
       },
@@ -178,3 +182,5 @@ const options: swaggerJsdoc.Options = {
 };
 
 export const swaggerSpec = swaggerJsdoc(options);
+
+
