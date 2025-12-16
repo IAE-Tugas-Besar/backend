@@ -1,7 +1,7 @@
 import { Router, Request, Response } from "express";
 import { prisma } from "../lib/prisma";
 import { authenticate } from "../middleware/auth";
-import { snap } from "../config/midtrans";
+import { snap, coreApi } from "../config/midtrans";
 import crypto from "crypto";
 
 const router: Router = Router();
@@ -234,6 +234,221 @@ router.get("/:orderId", authenticate, async (req: Request, res: Response) => {
     });
   }
 });
+
+/**
+ * @swagger
+ * /payments/{orderId}/verify:
+ *   post:
+ *     summary: Verify payment status from Midtrans API
+ *     tags: [Payments]
+ *     security:
+ *       - bearerAuth: []
+ *     description: |
+ *       Alternative to webhook - manually verify payment status by calling Midtrans API.
+ *       Call this endpoint after user completes payment on Midtrans Snap.
+ *       If payment is confirmed, tickets will be generated automatically.
+ *     parameters:
+ *       - in: path
+ *         name: orderId
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Payment verified successfully
+ *       400:
+ *         description: Payment not yet completed
+ *       404:
+ *         description: Order not found
+ */
+router.post(
+  "/:orderId/verify",
+  authenticate,
+  async (req: Request, res: Response) => {
+    try {
+      const { orderId } = req.params;
+      const userId = req.user!.id;
+
+      // Find order
+      const order = await prisma.order.findFirst({
+        where: { id: orderId, userId },
+        include: { orderItems: true },
+      });
+
+      if (!order) {
+        res.status(404).json({
+          success: false,
+          message: "Order not found",
+        });
+        return;
+      }
+
+      // If already paid, return success
+      if (order.status === "PAID") {
+        const tickets = await prisma.ticket.findMany({
+          where: { orderId: order.id },
+          select: { id: true, code: true, status: true },
+        });
+
+        res.json({
+          success: true,
+          message: "Payment already verified",
+          data: {
+            orderStatus: order.status,
+            tickets,
+          },
+        });
+        return;
+      }
+
+      // Check payment status from Midtrans
+      let transactionStatus: any;
+      try {
+        transactionStatus = await coreApi.transaction.status(
+          order.midtransOrderId
+        );
+      } catch (midtransError: any) {
+        // If 404 from Midtrans, transaction doesn't exist yet
+        if (midtransError.httpStatusCode === 404) {
+          res.status(400).json({
+            success: false,
+            message:
+              "Payment not found in Midtrans. User may not have started payment.",
+          });
+          return;
+        }
+        throw midtransError;
+      }
+
+      console.log(
+        "Midtrans transaction status:",
+        JSON.stringify(transactionStatus, null, 2)
+      );
+
+      const status = transactionStatus.transaction_status;
+      const fraudStatus = transactionStatus.fraud_status;
+
+      // Determine payment status
+      let paymentStatus:
+        | "PENDING"
+        | "SETTLED"
+        | "FAILED"
+        | "EXPIRED"
+        | "CANCELLED" = "PENDING";
+      let orderStatus: string = order.status;
+      let isPaid = false;
+
+      if (status === "capture" || status === "settlement") {
+        if (fraudStatus === "accept" || !fraudStatus) {
+          paymentStatus = "SETTLED";
+          orderStatus = "PAID";
+          isPaid = true;
+        } else {
+          paymentStatus = "FAILED";
+          orderStatus = "CANCELLED";
+        }
+      } else if (status === "pending") {
+        paymentStatus = "PENDING";
+        orderStatus = "AWAITING_PAYMENT";
+      } else if (status === "deny" || status === "cancel") {
+        paymentStatus = "CANCELLED";
+        orderStatus = "CANCELLED";
+      } else if (status === "expire") {
+        paymentStatus = "EXPIRED";
+        orderStatus = "EXPIRED";
+      }
+
+      // Update payment record
+      await prisma.payment.upsert({
+        where: { orderId: order.id },
+        create: {
+          orderId: order.id,
+          provider: "MIDTRANS",
+          status: paymentStatus,
+          transactionStatus: status,
+          fraudStatus,
+          rawPayloadJson: transactionStatus,
+        },
+        update: {
+          status: paymentStatus,
+          transactionStatus: status,
+          fraudStatus,
+          rawPayloadJson: transactionStatus,
+        },
+      });
+
+      // Update order status
+      await prisma.order.update({
+        where: { id: order.id },
+        data: { status: orderStatus as any },
+      });
+
+      // If paid, generate tickets
+      let generatedTickets: any[] = [];
+      if (isPaid) {
+        console.log("Payment verified as PAID, generating tickets...");
+
+        const ticketsToCreate = [];
+        for (const item of order.orderItems) {
+          for (let i = 0; i < item.qty; i++) {
+            ticketsToCreate.push({
+              orderId: order.id,
+              userId: order.userId,
+              concertId: order.concertId,
+              ticketTypeId: item.ticketTypeId,
+              code: generateTicketCode(),
+              status: "ISSUED" as const,
+            });
+          }
+        }
+
+        if (ticketsToCreate.length > 0) {
+          await prisma.ticket.createMany({ data: ticketsToCreate });
+          console.log(
+            `Created ${ticketsToCreate.length} tickets for order ${order.id}`
+          );
+
+          // Update ticket type sold count
+          for (const item of order.orderItems) {
+            await prisma.ticketType.update({
+              where: { id: item.ticketTypeId },
+              data: {
+                quotaSold: {
+                  increment: item.qty,
+                },
+              },
+            });
+          }
+
+          // Fetch created tickets
+          generatedTickets = await prisma.ticket.findMany({
+            where: { orderId: order.id },
+            select: { id: true, code: true, status: true },
+          });
+        }
+      }
+
+      res.json({
+        success: isPaid,
+        message: isPaid
+          ? "Payment verified successfully. Tickets generated."
+          : `Payment status: ${status}. Not yet paid.`,
+        data: {
+          orderStatus,
+          paymentStatus,
+          transactionStatus: status,
+          tickets: generatedTickets,
+        },
+      });
+    } catch (error) {
+      console.error("Verify payment error:", error);
+      res.status(500).json({
+        success: false,
+        message: "Failed to verify payment",
+      });
+    }
+  }
+);
 
 /**
  * @swagger
