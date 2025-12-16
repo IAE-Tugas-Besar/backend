@@ -8,9 +8,9 @@ import { resolvers } from "./schema/resolvers";
 import authRoutes from "./routes/auth";
 import orderRoutes from "./routes/order";
 import concertRoutes from "./routes/concerts";
-import { swaggerSpec } from "./config/swagger";
 import ticketRoutes from "./routes/ticket";
-
+import paymentRoutes from "./routes/payment";
+import { swaggerSpec } from "./config/swagger";
 
 const PORT = process.env.PORT || 4000;
 
@@ -38,11 +38,15 @@ async function startServer() {
 
   // Order routes
   app.use(orderRoutes);
+
   // Concert routes
   app.use("/concerts", concertRoutes);
 
   // Ticket routes
   app.use("/tickets", ticketRoutes);
+
+  // Payment routes
+  app.use("/payments", paymentRoutes);
 
   // GraphQL endpoint
   app.use("/graphql", expressMiddleware(server) as unknown as RequestHandler);
@@ -52,6 +56,7 @@ async function startServer() {
     console.log(`🚀 Server ready at http://localhost:${PORT}`);
     console.log(`📚 API Docs at http://localhost:${PORT}/api-docs`);
     console.log(`🔐 Auth endpoints at http://localhost:${PORT}/auth`);
+    console.log(`💳 Payment endpoints at http://localhost:${PORT}/payments`);
   });
 }
 
