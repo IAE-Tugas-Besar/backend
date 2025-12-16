@@ -7,4 +7,4 @@ dist
 prisma/migrations
 prisma/migration_lock.toml
 
-/uploads
+/uploads/concerts/*
